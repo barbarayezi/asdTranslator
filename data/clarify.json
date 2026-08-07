@@ -1,0 +1,259 @@
+{
+  "_meta": {
+    "description": "思路梳理三步流：躯体锚点 → 候选情绪 → 具体诉求。",
+    "rationale": "Kinnaird et al. (2019, n=366) 显示 ASD 群体述情障碍患病率 49.93%（NT 4.89%，RR=6.50），且「难以识别情绪」(DIF, d=1.28) 与「难以描述情绪」(DDF, d=1.29) 是两个独立的大效应。因此：(1) 入口必须是躯体锚点和情境锚点，绝不能开局问「你现在感觉如何」——那正是 DIF 卡住的地方；(2) 识别与描述分两步；(3) 整个模块可关闭，因为只有约一半用户需要。",
+    "output_principle": "最终产出必须落到**可执行诉求**，情绪命名只是中间产物，不是终点。"
+  },
+  "somatic": [
+    {
+      "id": "chest_tight",
+      "label": "胸口发紧 / 像压着东西",
+      "group": "躯干",
+      "emotions": ["焦虑", "被压迫", "愤怒", "恐惧"]
+    },
+    {
+      "id": "throat_block",
+      "label": "喉咙发堵 / 说不出话",
+      "group": "躯干",
+      "emotions": ["委屈", "无力", "被误解", "悲伤"]
+    },
+    {
+      "id": "stomach_turn",
+      "label": "胃里翻腾 / 想吐",
+      "group": "躯干",
+      "emotions": ["恐惧", "厌恶", "羞耻", "不安全"]
+    },
+    {
+      "id": "heart_race",
+      "label": "心跳加快 / 手心出汗",
+      "group": "躯干",
+      "emotions": ["紧张", "焦虑", "被威胁"]
+    },
+    {
+      "id": "shoulder_stiff",
+      "label": "肩颈僵硬 / 咬紧牙关",
+      "group": "躯干",
+      "emotions": ["愤怒", "戒备", "长期紧绷"]
+    },
+    {
+      "id": "restless",
+      "label": "坐不住 / 想动 / 停不下来抖腿",
+      "group": "行为冲动",
+      "emotions": ["烦躁", "过载", "焦虑", "被困住"]
+    },
+    {
+      "id": "want_leave",
+      "label": "很想离开这个房间",
+      "group": "行为冲动",
+      "emotions": ["过载", "恐惧", "被侵犯边界", "耗竭"]
+    },
+    {
+      "id": "want_silence",
+      "label": "不想说话 / 只想一个人待着",
+      "group": "行为冲动",
+      "emotions": ["耗竭", "过载", "失望", "自我保护"]
+    },
+    {
+      "id": "urge_explain",
+      "label": "特别想解释清楚 / 停不下来说",
+      "group": "行为冲动",
+      "emotions": ["被误解", "焦虑", "不被信任"]
+    },
+    {
+      "id": "mind_blank",
+      "label": "脑子一片空白 / 想不出词",
+      "group": "认知",
+      "emotions": ["认知过载", "恐惧", "关机(shutdown)"]
+    },
+    {
+      "id": "loop_thought",
+      "label": "同一件事在脑子里反复播放",
+      "group": "认知",
+      "emotions": ["焦虑", "被冒犯", "困惑", "未完成感"]
+    },
+    {
+      "id": "cant_focus",
+      "label": "没法专注 / 注意力被这件事占满",
+      "group": "认知",
+      "emotions": ["焦虑", "烦躁", "过载"]
+    },
+    {
+      "id": "sensory_loud",
+      "label": "声音变得刺耳 / 光变刺眼",
+      "group": "感官",
+      "emotions": ["感官过载", "耗竭"],
+      "note": "感官过载常被误认为情绪问题。如果只勾了这一项，优先处理环境，而不是处理关系。"
+    },
+    {
+      "id": "head_pressure",
+      "label": "太阳穴发胀 / 头疼",
+      "group": "感官",
+      "emotions": ["感官过载", "疲惫", "紧绷"]
+    },
+    {
+      "id": "exhausted",
+      "label": "累到虚脱 / 什么都不想做",
+      "group": "感官",
+      "emotions": ["耗竭(burnout)", "无力", "抑郁情绪"],
+      "note": "如果这种状态持续数周，可能是自闭倦怠(autistic burnout)，不是单次事件的情绪反应。"
+    },
+    {
+      "id": "numb",
+      "label": "没什么感觉 / 麻木",
+      "group": "感官",
+      "emotions": ["解离", "耗竭", "自我保护", "情绪尚未浮现"],
+      "note": "「没感觉」是有效答案，不是失败。可以跳过情绪这一步，直接看情境和诉求。"
+    }
+  ],
+  "situations": [
+    { "id": "interrupted", "label": "我说话被打断了" },
+    { "id": "misread", "label": "我的意思被理解成了别的" },
+    { "id": "rule_changed", "label": "事先说好的事情突然变了" },
+    { "id": "unclear_ask", "label": "对方要我做什么但没说清楚" },
+    { "id": "excluded", "label": "我被排除在某个决定/场合之外" },
+    { "id": "criticized", "label": "我被批评了" },
+    { "id": "overloaded_task", "label": "事情堆到我处理不过来" },
+    { "id": "social_demand", "label": "被要求参加社交、或被要求更热情" },
+    { "id": "boundary_crossed", "label": "对方越过了我的界限" },
+    { "id": "no_feedback", "label": "我不知道对方在想什么，没有任何反馈" },
+    { "id": "unfair", "label": "我觉得这件事不公平" },
+    { "id": "self_blame", "label": "我担心是我自己搞砸了" }
+  ],
+  "emotion_pool": [
+    "焦虑", "紧张", "恐惧", "被威胁", "不安全",
+    "愤怒", "被冒犯", "烦躁", "不公平感",
+    "委屈", "被误解", "被忽视", "失望", "悲伤",
+    "羞耻", "自责", "无力", "挫败",
+    "过载", "感官过载", "认知过载", "耗竭",
+    "困惑", "被困住", "戒备", "解离", "麻木"
+  ],
+  "needs": [
+    {
+      "id": "more_time",
+      "label": "我需要更多时间",
+      "templates": [
+        "这件事我需要到 {time} 才能给你结果，现在给的话质量会打折。",
+        "我想确认一下时间——{time} 可以吗？如果必须更早，我需要把 {tradeoff} 往后放。"
+      ],
+      "slots": ["time", "tradeoff"]
+    },
+    {
+      "id": "written_confirm",
+      "label": "我需要书面确认",
+      "templates": [
+        "我把刚才说的整理成文字发你，你看看有没有理解偏差。",
+        "这个能麻烦你在 {channel} 里回一句确认吗？我记录一下，避免后面对不上。"
+      ],
+      "slots": ["channel"]
+    },
+    {
+      "id": "stop_behavior",
+      "label": "我需要对方停止某个行为",
+      "templates": [
+        "有件事想跟你说一下：{behavior} 的时候我会跟不上，能不能 {alternative}？",
+        "我需要提一个请求——希望以后 {behavior} 之前先跟我说一声。"
+      ],
+      "slots": ["behavior", "alternative"]
+    },
+    {
+      "id": "clarify_info",
+      "label": "我需要信息 / 解释",
+      "templates": [
+        "我想确认几个点：{questions}。搞清楚这些我就能往下走了。",
+        "有一处我没跟上——{point} 是指什么？"
+      ],
+      "slots": ["questions", "point"]
+    },
+    {
+      "id": "be_heard",
+      "label": "我需要被听见，不需要建议",
+      "templates": [
+        "我想说一下这件事，不用给我建议，听我说完就行。",
+        "我现在需要的是有人知道这件事，不是解决方案。"
+      ],
+      "slots": []
+    },
+    {
+      "id": "change_env",
+      "label": "我需要改变环境（声音 / 光线 / 人数）",
+      "templates": [
+        "这个环境我有点撑不住，能不能换到 {place}？换个地方我状态会好很多。",
+        "我需要先处理一下环境——{issue}。十分钟后我们继续可以吗？"
+      ],
+      "slots": ["place", "issue"]
+    },
+    {
+      "id": "recover_alone",
+      "label": "我需要独处恢复",
+      "templates": [
+        "我需要 {duration} 缓一下，之后我们继续。这跟你没关系。",
+        "我先离开一会儿，{time} 回来。"
+      ],
+      "slots": ["duration", "time"]
+    },
+    {
+      "id": "renegotiate",
+      "label": "我需要重新协商范围",
+      "templates": [
+        "现在的范围我做不完。可以做的是 {can_do}，做不了的是 {cannot}。你希望我优先哪个？",
+        "如果要加 {new_item}，我需要把 {drop_item} 拿掉。你来定优先级。"
+      ],
+      "slots": ["can_do", "cannot", "new_item", "drop_item"]
+    },
+    {
+      "id": "acknowledge",
+      "label": "我需要一个承认 / 道歉",
+      "templates": [
+        "我想说一下：{event} 那件事对我影响挺大的。我不是要追责，是希望这件事被承认一下。",
+        "关于 {event}，我希望我们能对一下当时发生了什么。"
+      ],
+      "slots": ["event"]
+    },
+    {
+      "id": "predictability",
+      "label": "我需要可预期性",
+      "templates": [
+        "变动本身我能接受，但我需要提前知道。以后有调整能提前 {lead_time} 告诉我吗？",
+        "我想确认接下来的节奏：{schedule}。这样我能提前准备。"
+      ],
+      "slots": ["lead_time", "schedule"]
+    },
+    {
+      "id": "decline",
+      "label": "我需要拒绝这件事",
+      "templates": [
+        "这个我接不了。原因是 {reason}。",
+        "我这次不参加。谢谢你想到我。"
+      ],
+      "slots": ["reason"]
+    },
+    {
+      "id": "unknown",
+      "label": "我还不确定我要什么",
+      "templates": [
+        "我现在还没想清楚我想要什么，想先跟你说一下发生了什么：{event}。",
+        "我需要点时间想清楚我的诉求，想好了再找你。"
+      ],
+      "slots": ["event"],
+      "note": "这是完全合法的终点。把「我还不知道」明确说出来，本身就是有效沟通——比勉强编一个诉求要好。"
+    }
+  ],
+  "branches": {
+    "_note": "Jang et al. (CHI 2024) 指出 LLM 的默认输出系统性地过度乐观，默认便利措施会被批准。因此任何表达预案都必须给出三个分支，而不是一个顺利剧本。",
+    "smooth": {
+      "label": "顺利",
+      "prompt": "对方接受了。此时要做的是**把结果固化**——口头同意容易走样。",
+      "action": "回一句：「好，那我理解是 {结论}，我照这个走。」并留下文字记录。"
+    },
+    "stall": {
+      "label": "僵持",
+      "prompt": "对方既不答应也不拒绝，用「再看看」「回头说」拖着。",
+      "action": "不要反复追问（会消耗关系）。设一个自己的截止点：「那我 {日期} 再问一次，如果还没结论我就按 {默认方案} 处理。」"
+    },
+    "refused": {
+      "label": "拒绝",
+      "prompt": "对方明确不同意。这不代表你的表达失败了。",
+      "action": "先确认理解：「我确认一下，是 {原因} 所以不行，对吗？」拿到真实原因后，判断是换方案、升级、还是接受。**你不需要当场解决**——「我想一下，明天回复你」是合法回应。"
+    }
+  }
+}

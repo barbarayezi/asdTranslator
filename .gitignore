@@ -1,0 +1,23 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Runtime data (local user state, prefs, history)
+*.db
+*.sqlite
+*.sqlite3
+asd_translator.db
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local env / secrets
+.env
+*.local

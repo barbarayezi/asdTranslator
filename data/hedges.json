@@ -1,0 +1,122 @@
+{
+  "_meta": {
+    "description": "社交缓冲件库。每一件都必须可单独开关，并显示「加这句换来什么、损失什么」——不做默默改写。",
+    "principle": "缓冲语是可选配件，不是修正。用户有权全部拒绝，直接发原文。"
+  },
+  "openers": [
+    { "id": "plain", "text": "", "label": "不加开场", "gain": "最省时间，信息密度最高", "cost": "不熟的人可能读作冷淡", "formality": 0 },
+    { "id": "name", "text": "{name}，", "label": "只加称呼", "gain": "成本最低的关系确认", "cost": "几乎没有", "formality": 1 },
+    { "id": "topic", "text": "关于{topic}，", "label": "主题引导", "gain": "既缓冲又交代上下文，不用寒暄天气", "cost": "需要你概括主题", "formality": 1 },
+    { "id": "hello", "text": "{name}你好，", "label": "标准问候", "gain": "适用于对外、跨部门", "cost": "对熟人略显生分", "formality": 2 },
+    { "id": "thanks_first", "text": "{name}，先谢谢你之前{prev}。", "label": "先致谢", "gain": "在提要求前建立善意", "cost": "如果没有真实的可谢之事会显得虚假——没有就别用", "formality": 2 }
+  ],
+  "buffers": [
+    {
+      "id": "acknowledge_constraint",
+      "text": "我理解{constraint}，",
+      "label": "承认对方的约束",
+      "gain": "对方感到被理解，防御性下降",
+      "cost": "一句话；且要求你真的知道对方的约束是什么",
+      "attach_to": ["direct_error_claim", "absolute_negation"]
+    },
+    {
+      "id": "self_uncertainty",
+      "text": "可能是我漏了什么，",
+      "label": "留一个我可能错的口子",
+      "gain": "把「你错了」变成「我们信息不一致」，几乎总能降低冲突",
+      "cost": "轻微削弱你的确定性。如果你非常确定且场合允许，可以不用",
+      "attach_to": ["direct_error_claim", "absolute_negation"]
+    },
+    {
+      "id": "concern_frame",
+      "text": "我担心{risk}，",
+      "label": "用担忧代替判断",
+      "gain": "从「判定对错」转成「共同规避风险」，对方更容易接受",
+      "cost": "需要你把反对点表述成一个后果",
+      "attach_to": ["direct_error_claim"]
+    },
+    {
+      "id": "shared_goal",
+      "text": "我们目标是一致的，都想{goal}。",
+      "label": "先对齐目标",
+      "gain": "在有对抗气氛时特别有效",
+      "cost": "如果目标其实不一致，用了会更糟",
+      "attach_to": ["direct_error_claim", "absolute_negation"]
+    },
+    {
+      "id": "give_reason",
+      "text": "因为{reason}，",
+      "label": "补上原因",
+      "gain": "解释性理由能显著提高请求被接受的概率",
+      "cost": "一句话",
+      "attach_to": ["imperative_no_subject"]
+    },
+    {
+      "id": "please",
+      "text": "麻烦",
+      "label": "加「麻烦」",
+      "gain": "把祈使句变成请求，成本几乎为零",
+      "cost": "无",
+      "attach_to": ["imperative_no_subject"]
+    },
+    {
+      "id": "intent_tag_info",
+      "text": "这条只是同步信息，不需要你做什么。",
+      "label": "标注：仅同步",
+      "gain": "免掉对方猜测你要什么，减少无效回复",
+      "cost": "一行",
+      "attach_to": ["unmarked_intent"]
+    },
+    {
+      "id": "intent_tag_decision",
+      "text": "这个需要你拍板，我列了{n}个选项。",
+      "label": "标注：需要决策",
+      "gain": "明确球在谁手上",
+      "cost": "一行",
+      "attach_to": ["unmarked_intent"]
+    },
+    {
+      "id": "intent_tag_feeling",
+      "text": "我想说的是我对{issue}有意见，不是要追责。",
+      "label": "标注：表达感受",
+      "gain": "预防对方误以为你在指控",
+      "cost": "一行",
+      "attach_to": ["unmarked_intent"]
+    },
+    {
+      "id": "intent_tag_question",
+      "text": "我在问信息，没有别的意思。",
+      "label": "标注：仅提问",
+      "gain": "ASD 的中性提问常被误读为质疑，这句能有效预防",
+      "cost": "一行",
+      "attach_to": ["unmarked_intent", "direct_error_claim"]
+    }
+  ],
+  "closings": [
+    { "id": "plain", "text": "", "label": "不加收尾", "gain": "最简洁", "cost": "对方可能不确定你说完没有", "formality": 0 },
+    { "id": "thanks", "text": "谢谢。", "label": "谢谢", "gain": "通用收尾", "cost": "无", "formality": 1 },
+    { "id": "next_step", "text": "如果没问题我就按这个推进了。", "label": "明确下一步", "gain": "消除行动歧义，且给了默认值——对方不回复也不会卡住", "cost": "无", "formality": 1 },
+    { "id": "await", "text": "等你回复，谢谢。", "label": "等待回复", "gain": "明确球在对方手上", "cost": "如果对方不回你会一直等，建议配合自设截止时间", "formality": 2 },
+    { "id": "open_question", "text": "有没有我没考虑到的地方？", "label": "开放征询", "gain": "在提出异议后使用，能明显软化对抗感", "cost": "可能引来你不想要的讨论", "formality": 2 }
+  ],
+  "refusal_levels": [
+    {
+      "level": 1,
+      "label": "软 · 留余地",
+      "template": "这个我现在排不进来。如果{condition}的话我可以重新看一下。",
+      "note": "适合你确实可能改变主意、或对方权力较大的场合"
+    },
+    {
+      "level": 2,
+      "label": "中 · 明确但友好",
+      "template": "这次我接不了，{reason}。{alternative}",
+      "note": "给了原因和替代方案，是多数职场场景的默认选择"
+    },
+    {
+      "level": 3,
+      "label": "硬 · 不留讨论空间",
+      "template": "这个我不做。",
+      "note": "边界被反复触碰时需要。会有关系成本，但有时这个成本值得付。选它不是你的失败。"
+    }
+  ]
+}

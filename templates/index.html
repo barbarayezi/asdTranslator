@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>asdTranslator — 双向沟通翻译器</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">⇄</span>
+    <div>
+      <h1>asdTranslator</h1>
+      <p class="brand-sub">双向沟通翻译器 · 两个方向同等重要</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <label class="field-inline">
+      <span>场景</span>
+      <select id="scene">
+        {% for key, label in scenes.items() %}
+        <option value="{{ key }}" {% if key == prefs.default_scene %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field-inline">
+      <span>对象</span>
+      <select id="speaker"><option value="">未指定</option></select>
+    </label>
+    <span id="llmBadge" class="badge {{ 'badge-on' if llm_status.available else 'badge-off' }}"
+          title="{{ llm_status.reason }}">
+      {{ '大模型已接入' if llm_status.available else '规则引擎' }}
+    </span>
+    <button class="icon-btn" id="openSettings" title="设置">设置</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="decode">
+    <strong>听懂对方</strong><small>NT → 你</small>
+  </button>
+  <button class="tab" data-tab="compose">
+    <strong>把话说出去</strong><small>你 → NT</small>
+  </button>
+  <button class="tab" data-tab="clarify">
+    <strong>梳理思路</strong><small>感受 → 诉求</small>
+  </button>
+  <button class="tab" data-tab="history">
+    <strong>记录</strong><small>本机存储</small>
+  </button>
+</nav>
+
+<main>
+
+<!-- ============ 听懂对方 ============ -->
+<section class="panel active" id="panel-decode">
+  <div class="split">
+    <div class="col col-input">
+      <div class="card">
+        <div class="card-head">
+          <h2>对方说的话</h2>
+          <span class="hint">原样粘贴，不用整理</span>
+        </div>
+        <textarea id="decodeInput" rows="9"
+          placeholder="例如：&#10;这个方案挺有意思的，我们再看看吧，优先级回头再排一下。&#10;有需要随时找我。"></textarea>
+        <div class="row-actions">
+          <label class="checkbox" id="decodeLlmWrap">
+            <input type="checkbox" id="decodeLlm"> <span>同时用大模型深度解读</span>
+          </label>
+          <button class="btn-primary" id="decodeBtn">解码</button>
+        </div>
+        <div class="samples">
+          <span>试试：</span>
+          <button class="chip-sample" data-target="decodeInput" data-text="这个方案挺有意思的，我们再看看吧，优先级回头再排一下。有需要随时找我。">软性拒绝</button>
+          <button class="chip-sample" data-target="decodeInput" data-text="行行行，你说得都对。随便你怎么弄吧，我没意见。">反语＋情绪信号</button>
+          <button class="chip-sample" data-target="decodeInput" data-text="这个改动很简单的，你尽快弄一下就行，不着急，有空做。">模糊量词</button>
+          <button class="chip-sample" data-target="decodeInput" data-text="整体不错，就是有点长。方便的话帮我压缩一下，辛苦了。">包裹式批评</button>
+        </div>
+      </div>
+    </div>
+    <div class="col col-output">
+      <div id="decodeResult" class="result-area">
+        <div class="empty-state">
+          <p class="empty-title">把对方的话贴进来</p>
+          <p>会拆成三层：<b>陈述的事实</b> / <b>表达的情绪</b> / <b>真正想让你做的事</b>，并标出软性拒绝、反语、模糊量词。</p>
+          <p class="empty-note">所有解读都带置信度，且不止一个候选——潜台词是双方共同建构的，不存在唯一答案。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 把话说出去 ============ -->
+<section class="panel" id="panel-compose">
+  <div class="split">
+    <div class="col col-input">
+      <div class="card">
+        <div class="card-head">
+          <h2>你想说的话</h2>
+          <span class="hint">照你自己的方式写</span>
+        </div>
+        <textarea id="composeInput" rows="9"
+          placeholder="例如：&#10;这个方案根本行不通，第三步的逻辑是错的，数据源也不对，而且时间估算完全没考虑联调，所以我建议重做。"></textarea>
+        <div class="row-actions">
+          <label class="checkbox">
+            <input type="checkbox" id="composeLlm"> <span>同时用大模型给改写变体</span>
+          </label>
+          <button class="btn-primary" id="composeBtn">看看会被怎么理解</button>
+        </div>
+        <div class="samples">
+          <span>试试：</span>
+          <button class="chip-sample" data-target="composeInput" data-text="这个方案根本行不通，第三步的逻辑是错的，数据源也不对，而且时间估算完全没考虑联调，所以我建议重做。">直接判错</button>
+          <button class="chip-sample" data-target="composeInput" data-text="把昨天那个文件发我，另外报表改一下，数据源换成新的。">无主语祈使</button>
+          <button class="chip-sample" data-target="composeInput" data-text="不好意思打扰了，可能是我理解有问题，我不太确定对不对，如果我说错了请忽略，就是感觉这个接口的超时设置好像有点短。">过度自我弱化</button>
+        </div>
+      </div>
+      <div class="card" id="composerCard" hidden>
+        <div class="card-head">
+          <h2>组装</h2>
+          <span class="hint">全部默认关闭，你逐条打开</span>
+        </div>
+        <div id="composerBody"></div>
+      </div>
+    </div>
+    <div class="col col-output">
+      <div id="composeResult" class="result-area">
+        <div class="empty-state">
+          <p class="empty-title">写下你想说的话</p>
+          <p>这里<b>不做纠错</b>。只会告诉你「这句在 NT 语境里可能被读作什么」，然后由你决定改不改。</p>
+          <p class="empty-note">原文永远保留。所有缓冲语默认关闭，每一条都会写明加上它换来什么、损失什么。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 梳理思路 ============ -->
+<section class="panel" id="panel-clarify">
+  <div class="clarify-wrap">
+    <div class="steps" id="clarifySteps">
+      <div class="step-dot active" data-step="1"><span>1</span>身体感觉</div>
+      <div class="step-dot" data-step="2"><span>2</span>情绪（可跳过）</div>
+      <div class="step-dot" data-step="3"><span>3</span>你要什么</div>
+      <div class="step-dot" data-step="4"><span>4</span>说出口</div>
+    </div>
+    <div id="clarifyBody" class="clarify-body"></div>
+  </div>
+</section>
+
+<!-- ============ 记录 ============ -->
+<section class="panel" id="panel-history">
+  <div class="card wide">
+    <div class="card-head">
+      <h2>本机记录</h2>
+      <div>
+        <span class="hint">只存在这台电脑上 · 不做任何统计或评分</span>
+        <button class="btn-ghost danger" id="clearHistory">全部清空</button>
+      </div>
+    </div>
+    <div id="historyBody"></div>
+  </div>
+</section>
+
+</main>
+
+<!-- 设置抽屉 -->
+<div class="drawer-mask" id="drawerMask" hidden></div>
+<aside class="drawer" id="settingsDrawer" hidden>
+  <div class="drawer-head">
+    <h2>设置</h2>
+    <button class="icon-btn" id="closeSettings">关闭</button>
+  </div>
+  <div class="drawer-body">
+    <section class="setting-group">
+      <h3>模块开关</h3>
+      <label class="switch-row">
+        <input type="checkbox" id="prefEmotion">
+        <div>
+          <b>情绪模块</b>
+          <small>述情障碍在 ASD 群体中约占一半（Kinnaird 2019），另一半并不需要这一步。不需要就关掉。</small>
+        </div>
+      </label>
+      <label class="switch-row">
+        <input type="checkbox" id="prefRationale">
+        <div>
+          <b>显示文献依据</b>
+          <small>在每条规则旁边显示它的来源和理由。</small>
+        </div>
+      </label>
+      <label class="switch-row">
+        <input type="checkbox" id="prefHedges">
+        <div>
+          <b>缓冲语默认打开</b>
+          <small>默认关闭。打开后会预选常用缓冲件，但仍可逐条取消。</small>
+        </div>
+      </label>
+    </section>
+
+    <section class="setting-group">
+      <h3>说话人档案</h3>
+      <p class="setting-desc">「尽快」在不同人嘴里差别很大。记下某个人的真实区间，解码时会用他的值覆盖默认值。</p>
+      <div id="speakerEditor"></div>
+    </section>
+
+    <section class="setting-group">
+      <h3>这个工具承诺不做什么</h3>
+      <p class="setting-desc">以下是硬编码的输出红线，大模型的每一次输出都会过这一层检查。</p>
+      <div id="guardrailList" class="guardrail-list"></div>
+    </section>
+
+    <section class="setting-group">
+      <h3>大模型</h3>
+      <div id="llmInfo" class="llm-info"></div>
+      <p class="setting-desc">通过环境变量配置，不写在界面上，避免密钥落到数据库里：<br>
+        <code>ASDT_LLM_API_KEY</code> · <code>ASDT_LLM_BASE_URL</code> · <code>ASDT_LLM_MODEL</code>
+      </p>
+    </section>
+  </div>
+</aside>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>window.__PREFS__ = {{ prefs | tojson }};</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
