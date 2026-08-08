@@ -65,6 +65,16 @@
         </div>
         <textarea id="decodeInput" rows="9"
           placeholder="例如：&#10;这个方案挺有意思的，我们再看看吧，优先级回头再排一下。&#10;有需要随时找我。"></textarea>
+        <details class="ctx-box">
+          <summary>补充背景（可选，能让解读更准）</summary>
+          <div class="ctx-grid">
+            <label>关系<input id="ctxRelationship" placeholder="同事 / 上级 / 朋友 / 家人"></label>
+            <label>场合 / 语气<input id="ctxSetting" placeholder="文字 / 语音 / 当面"></label>
+            <label class="ctx-wide">前因<textarea id="ctxPrior" rows="2" placeholder="这句话之前发生了什么"></textarea></label>
+            <label>对方语气<input id="ctxTone" placeholder="如：有点冷淡 / 很热情"></label>
+          </div>
+          <p class="hint">信息不够，软件就分析不全面——这几项补得越全，误读越少。不填也行，纯规则引擎照样跑。</p>
+        </details>
         <div class="row-actions">
           <label class="checkbox" id="decodeLlmWrap">
             <input type="checkbox" id="decodeLlm"> <span>同时用大模型深度解读</span>

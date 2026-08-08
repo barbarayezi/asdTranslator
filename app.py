@@ -13,7 +13,7 @@ from flask import Flask, jsonify, render_template, request
 
 import config
 import database as db
-from engine import clarify, compose, decode, guardrails, llm
+from engine import clarify, compose, context, decode, guardrails, llm
 from engine.base import load, reload_all
 
 app = Flask(__name__)
@@ -58,13 +58,22 @@ def api_decode():
     speaker = db.get_speaker(data.get("speaker_id"))
     overrides = speaker["overrides"] if speaker else {}
 
+    # 合并背景：用户手动填的 context + 已启用的数据源 provider
+    ctx = context.merge_context(
+        manual=data.get("context") or {},
+        enabled_ids=data.get("context_providers"),
+    )
+
     result = decode.decode(
         text,
         scene=scene,
         min_confidence=float(prefs.get("min_confidence", 0.2)),
         speaker_overrides=overrides,
+        context=ctx,
     )
     result["speaker"] = speaker
+    result["context_used"] = ctx
+    result["context_providers"] = data.get("context_providers") or []
 
     if data.get("use_llm") and llm.available():
         enhanced = llm.decode(text, scene, result)
@@ -76,6 +85,12 @@ def api_decode():
                  speaker_id=data.get("speaker_id"),
                  payload={"level": result.get("summary", {}).get("level")})
     return jsonify(result)
+
+
+@app.get("/api/context/providers")
+def api_context_providers():
+    """列出可接入的真实数据源（手动 / 本机记录 / 未来日历·邮件·可穿戴…）。"""
+    return jsonify({"providers": context.list_providers()})
 
 
 # ---------------- ASD → NT 转换 ----------------

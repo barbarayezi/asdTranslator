@@ -131,7 +131,25 @@ def _decompose(text: str) -> dict[str, list[str]]:
     return {"facts": facts, "emotions": emotions, "actions": actions}
 
 
-def _summarize(hits: list[Hit], vague: list[dict[str, Any]]) -> dict[str, Any]:
+def _summarize(
+    hits: list[Hit],
+    vague: list[dict[str, Any]],
+    text: str = "",
+    context: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """汇总层。
+
+    新增「充分度」信号，正面回应「输入不够就分析不全面」：
+      - completeness: thin / partial / adequate
+          thin      —— 文本本身太短，引擎无事可做
+          partial   —— 文本够长，但缺关键背景维度（关系/场合/前因）
+          adequate  —— 关键背景都给了，可以放心按字面理解
+      - missing_context: 还缺哪些维度，以及「对方有没有给具体时间或条件」
+                         （拒绝/边界类命中时必问，因为那是区分拒绝与缓兵之计的关键）
+
+    关键约束：没有给足背景时，绝不声称「大概率字面」——那样会让人误以为
+    分析已经完整，其实只是没东西可分析（正是用户指出的盲点）。
+    """
     tones = [h.tone for h in hits]
     if "alert" in tones:
         level = "alert"
@@ -142,14 +160,50 @@ def _summarize(hits: list[Hit], vague: list[dict[str, Any]]) -> dict[str, Any]:
     else:
         level = "clear"
 
+    context = context or {}
+    # 缺失这些维度，解码会偏猜
+    dims = [
+        ("relationship", "你们的关系（同事 / 上级 / 朋友 / 家人）"),
+        ("setting", "说这话的场合和语气（文字 / 语音 / 当面）"),
+        ("prior", "这句话之前发生了什么（前因）"),
+    ]
+    missing_context = [label for key, label in dims if not str(context.get(key, "")).strip()]
+
+    refusal = [h for h in hits if h.category == "soft_refusal"]
+    boundary = [h for h in hits if h.category == "boundary"]
+    if refusal or boundary:
+        missing_context.append(
+            "对方有没有给出具体的时间或条件（用来判断到底是拒绝，还是缓兵之计）"
+        )
+
+    stripped = text.strip()
+    # 极短且零命中 —— 引擎真的无事可做
+    thin = len(stripped) <= 4 and not hits and not vague
+
+    if thin:
+        completeness = "thin"
+    elif missing_context:
+        completeness = "partial"
+    else:
+        completeness = "adequate"
+
     headline_map = {
         "alert": "这段话里有字面意思和真实意思不一致的地方，建议逐条看。",
         "warn": "有几处可能不是字面意思，下面列了候选解读。",
         "info": "整体比较直白，有少量需要留意的措辞。",
-        "clear": "没有匹配到常见的潜台词模式。这段话大概率可以按字面理解。",
+        "clear": "没有匹配到常见的潜台词模式。",
     }
-    refusal = [h for h in hits if h.category == "soft_refusal"]
-    boundary = [h for h in hits if h.category == "boundary"]
+    if completeness == "thin":
+        headline = (
+            "信息太少，我只能给按字面的最可能解读。补全背景（关系 / 场合 / 前因）会更准——"
+            "但这不保证对方真是那个意思。"
+        )
+    elif completeness == "partial":
+        headline = headline_map[level] + "有背景信息缺失，下面列了补全后能更准的地方。"
+    else:
+        headline = (
+            headline_map[level] + "结合你给的背景，这段话可以按字面理解，但仍需结合你对这个人的了解。"
+        )
 
     priority: list[str] = []
     if boundary:
@@ -160,8 +214,10 @@ def _summarize(hits: list[Hit], vague: list[dict[str, Any]]) -> dict[str, Any]:
         )
     return {
         "level": level,
-        "headline": headline_map[level],
+        "completeness": completeness,
+        "headline": headline,
         "priority": priority,
+        "missing_context": missing_context,
         "counts": {
             "phrases": len(hits),
             "vague": len(vague),
@@ -174,8 +230,14 @@ def decode(
     scene: str = "work",
     min_confidence: float = 0.2,
     speaker_overrides: dict[str, str] | None = None,
+    context: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """主入口。返回结构化解码结果。"""
+    """主入口。返回结构化解码结果。
+
+    context: 可选的背景维度（relationship / setting / prior / tone），
+    来自用户手动填写或已启用的数据源 provider。只用于「充分度」判断，
+    不凭空改写解读——背景缺失时我们提示缺什么，而不是假装读懂了。
+    """
     text = (text or "").strip()
     if not text:
         return {"ok": False, "error": "empty"}
@@ -189,7 +251,7 @@ def decode(
         "engine": "rules",
         "original": text,
         "scene": scene,
-        "summary": _summarize(hits, vague),
+        "summary": _summarize(hits, vague, text, context),
         "hits": [h.to_dict() for h in hits],
         "vague": vague,
         "layers": layers,

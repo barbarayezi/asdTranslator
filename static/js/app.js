@@ -72,6 +72,12 @@ $('#decodeBtn').addEventListener('click', async () => {
       scene: $('#scene').value,
       speaker_id: $('#speaker').value ? Number($('#speaker').value) : null,
       use_llm: $('#decodeLlm').checked,
+      context: {
+        relationship: $('#ctxRelationship').value.trim(),
+        setting: $('#ctxSetting').value.trim(),
+        prior: $('#ctxPrior').value.trim(),
+        tone: $('#ctxTone').value.trim(),
+      },
     },
   });
   renderDecode(data);
@@ -83,11 +89,22 @@ function renderDecode(d) {
 
   const parts = [];
   const s = d.summary;
+  const compLabel = { thin: '信息太少', partial: '背景不全', adequate: '背景较全' }[s.completeness] || '';
   parts.push(`
     <div class="summary-card level-${esc(s.level)}">
+      ${compLabel ? `<span class="comp-badge comp-${esc(s.completeness)}">${esc(compLabel)}</span>` : ''}
       <div class="summary-headline">${esc(s.headline)}</div>
       ${s.priority.map((p) => `<p class="summary-priority">· ${esc(p)}</p>`).join('')}
     </div>`);
+
+  // 信息不够：明确告诉用户还缺什么，而不是假装分析完整
+  if (s.missing_context && s.missing_context.length) {
+    parts.push(`
+      <div class="missing-box">
+        <p class="missing-title">补上这些背景，解读会更准：</p>
+        <ul>${s.missing_context.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
+      </div>`);
+  }
 
   // 三层拆解
   const L = d.layers;

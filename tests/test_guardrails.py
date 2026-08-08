@@ -247,6 +247,67 @@ def test_clarify_all_outputs_clean():
             assert not r["blocked"], f"话术模板触碰红线：{tpl} → {r['violations']}"
 
 
+# ---------- 充分度信号（信息不够就不假装读懂）----------
+
+def test_decode_thin_when_too_short():
+    """极短且零命中 → 充分度标 thin，绝不声称「字面」。"""
+    r = decode.decode("收到", scene="work")
+    assert not r["hits"] and not r["vague"]
+    assert r["summary"]["completeness"] == "thin"
+    assert "信息太少" in r["summary"]["headline"]
+
+
+def test_decode_partial_without_context():
+    """文本够长但没给背景 → partial，并列出缺什么。"""
+    r = decode.decode("这个方案挺好的，我们回头再说吧。", scene="work")
+    assert r["summary"]["completeness"] == "partial"
+    mc = r["summary"]["missing_context"]
+    assert any("关系" in m for m in mc)
+    assert any("前因" in m for m in mc)
+
+
+def test_decode_adequate_when_context_given():
+    """关键背景都给了、且无拒绝/边界命中 → adequate，missing_context 清空。"""
+    r = decode.decode(
+        "请把报告整理好发我邮箱。",
+        scene="work",
+        context={"relationship": "直属上级", "setting": "书面", "prior": "上周的评审"},
+    )
+    assert r["summary"]["completeness"] == "adequate"
+    assert r["summary"]["missing_context"] == []
+
+
+def test_decode_refusal_always_asks_for_condition():
+    """软性拒绝命中时，无论背景全不全，都追问「有没有具体时间或条件」。"""
+    r = decode.decode("这个方案挺有意思的，我们再看看吧。", scene="work",
+                      context={"relationship": "同事", "setting": "当面", "prior": "刚才开会"})
+    assert any("具体的时间或条件" in m for m in r["summary"]["missing_context"])
+
+
+# ---------- 真实数据源接入层（ContextProvider）----------
+
+def test_context_manual_provider_filters_blank():
+    from engine.context import ManualContextProvider
+    p = ManualContextProvider()
+    out = p.gather(relationship="同事", setting="  ", prior="", tone="冷淡")
+    assert out == {"relationship": "同事", "tone": "冷淡"}
+
+
+def test_context_history_provider_reads_db():
+    import database as db
+    from engine.context import HistoryContextProvider
+    db.add_entry("decode", "上周他说这个需求优先级不高", scene="work")
+    out = HistoryContextProvider().gather(limit=3)
+    assert "prior" in out and "上周他说" in out["prior"]
+
+
+def test_context_merge_manual_overrides_auto():
+    from engine.context import merge_context
+    # manual 给了 prior，history 不会再覆盖
+    ctx = merge_context(manual={"prior": "用户自己写的前因"}, enabled_ids=["history"])
+    assert ctx["prior"] == "用户自己写的前因"
+
+
 if __name__ == "__main__":
     import traceback
 
