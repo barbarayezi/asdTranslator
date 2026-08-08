@@ -296,6 +296,7 @@ def test_context_manual_provider_filters_blank():
 def test_context_history_provider_reads_db():
     import database as db
     from engine.context import HistoryContextProvider
+    db.init_db()  # 测试直接写库，需先建表（app 通常在首次请求时建）
     db.add_entry("decode", "上周他说这个需求优先级不高", scene="work")
     out = HistoryContextProvider().gather(limit=3)
     assert "prior" in out and "上周他说" in out["prior"]

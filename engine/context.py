@@ -95,6 +95,7 @@ class HistoryContextProvider(ContextProvider):
         try:
             import database as db
 
+            db.init_db()  # 测试直接调用 gather 时库可能还没建表
             rows = db.list_entries(limit=limit)
             prior_bits = [r["input"] for r in rows if (r.get("input") or "").strip()]
             if prior_bits:
