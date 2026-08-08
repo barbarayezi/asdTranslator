@@ -13,7 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from engine import clarify, compose, decode, guardrails  # noqa: E402
+from engine import clarify, compose, context, decode, guardrails  # noqa: E402
+from engine.context import SleepContextProvider  # noqa: E402
 
 
 # ---------- 红线：必须拦截 ----------
@@ -275,6 +276,103 @@ def test_decode_adequate_when_context_given():
     )
     assert r["summary"]["completeness"] == "adequate"
     assert r["summary"]["missing_context"] == []
+
+
+# ---------- sleeptracking 接入：睡眠/身体状态作为解码参考维度 ----------
+
+def test_context_providers_lists_sleep_disabled():
+    """/api/context/providers 应含 sleep，且默认关闭（涉及健康数据）。"""
+    provs = {p["id"]: p for p in context.list_providers()}
+    assert "sleep" in provs
+    assert provs["sleep"]["enabled"] is False
+    assert "body_state" in provs["sleep"]["provides"]
+
+
+def test_sleep_provider_reads_local_db():
+    """用临时 SQLite 模拟 sleeptracking 库，验证只读解析 HRV 趋势 / 睡眠。"""
+    import json
+    import os
+    import sqlite3
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    try:
+        con = sqlite3.connect(path)
+        con.execute(
+            "CREATE TABLE sleep_records (record_date TEXT, sleep_quality TEXT, "
+            "sleep_problems TEXT, dream_journal TEXT)"
+        )
+        con.execute(
+            "CREATE TABLE whoop_daily_metrics "
+            "(record_date TEXT, hrv REAL, recovery_score REAL)"
+        )
+        con.execute(
+            "CREATE TABLE period_records (record_date TEXT, mood TEXT)"
+        )
+        # 最近 3 天低 HRV + 前 7 天高 HRV，触发「恢复不足」分支
+        lows = (40, 42, 41)
+        for i in range(10):
+            day = i + 1
+            hrv = lows[i - 7] if i >= 7 else 70
+            con.execute(
+                "INSERT INTO whoop_daily_metrics VALUES (?,?,?)",
+                (f"2026-08-{day:02d}", hrv, hrv),
+            )
+        con.execute(
+            "INSERT INTO sleep_records VALUES ('2026-08-03','poor','[\"insomnia\"]','胸口发紧')"
+        )
+        con.execute("INSERT INTO period_records VALUES ('2026-08-03','低落')")
+        con.commit()
+        con.close()
+
+        old = os.environ.get("ASDT_SLEEP_DB")
+        os.environ["ASDT_SLEEP_DB"] = path
+        try:
+            out = SleepContextProvider().gather()
+        finally:
+            if old is None:
+                os.environ.pop("ASDT_SLEEP_DB", None)
+            else:
+                os.environ["ASDT_SLEEP_DB"] = old
+        assert "body_state" in out
+        assert "恢复不足" in out["body_state"]
+        assert "sleep_quality" in out
+        assert "recent_mood" in out and "低落" in out["recent_mood"]
+    finally:
+        os.remove(path)
+
+
+def test_decode_surfaces_body_context_without_overreading():
+    """body_state 进入结果但不参与充分度判定，且带去过度读心的说明。"""
+    r = decode.decode(
+        "这个方案挺好的，我们回头再说吧。",  # 无拒绝/边界命中
+        scene="work",
+        context={"body_state": "HRV 近 3 天 41ms，低于前 7 天 70ms——身体处于恢复不足状态"},
+    )
+    # body 维度独立于 relationship/setting/prior，仍应标 partial（关系未给）
+    assert r["summary"]["completeness"] == "partial"
+    assert r["summary"]["body_context"]
+    assert "body_state" in r["summary"]["body_context"]
+    # 明确说明这是自我觉察参考、不改对方原意——防止过度读心
+    assert r["summary"]["body_note"]
+    assert "针对我" in r["summary"]["body_note"]
+
+
+def test_sleep_provider_missing_db_is_safe():
+    """库不存在时 fail-safe 返回 {}，不影响主流程。"""
+    import os
+    from engine.context import SleepContextProvider
+
+    old = os.environ.get("ASDT_SLEEP_DB")
+    os.environ["ASDT_SLEEP_DB"] = "/no/such/path/sleeptracking.db"
+    try:
+        assert SleepContextProvider().gather() == {}
+    finally:
+        if old is None:
+            os.environ.pop("ASDT_SLEEP_DB", None)
+        else:
+            os.environ["ASDT_SLEEP_DB"] = old
 
 
 def test_decode_refusal_always_asks_for_condition():

@@ -74,6 +74,10 @@
             <label>对方语气<input id="ctxTone" placeholder="如：有点冷淡 / 很热情"></label>
           </div>
           <p class="hint">信息不够，软件就分析不全面——这几项补得越全，误读越少。不填也行，纯规则引擎照样跑。</p>
+          <label class="checkbox ctx-provider">
+            <input type="checkbox" id="ctxSleep"> <span>结合我的睡眠/身体状态（本机只读 · sleeptracking）</span>
+          </label>
+          <p class="hint">只读取你这台电脑上的睡眠库（睡眠质量、Whoop 的 HRV/恢复、经期心情），作为你自己的参考维度——不改对方原意，不联网、不发送。</p>
         </details>
         <div class="row-actions">
           <label class="checkbox" id="decodeLlmWrap">

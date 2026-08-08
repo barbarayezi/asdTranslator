@@ -212,12 +212,29 @@ def _summarize(
         priority.append(
             f"有 {len(refusal)} 处可能是软性拒绝。判断的关键通常是：对方有没有给出具体的时间或条件。"
         )
+
+    # 身体/睡眠状态：仅作用户的自我觉察参考维度，不参与「充分度」判定，
+    # 也绝不用来「更准地读对方」（那是过度读心，属红线）。它只是把用户
+    # 当下的生理负荷摆到台面上，提醒不要把身体疲惫误读成「对方在针对我」。
+    body_keys = ("body_state", "recent_mood", "sleep_quality")
+    body_context = {
+        k: context[k] for k in body_keys if str(context.get(k, "")).strip()
+    } or None
+    body_note = None
+    if body_context:
+        body_note = (
+            "已结合你近期的身体/睡眠状态作为【参考维度】。这仅说明你此刻的生理负荷，"
+            "供你自我觉察——不要把身体疲惫误读成「对方在针对我」。它不改变对方话语本身的含义。"
+        )
+
     return {
         "level": level,
         "completeness": completeness,
         "headline": headline,
         "priority": priority,
         "missing_context": missing_context,
+        "body_context": body_context,
+        "body_note": body_note,
         "counts": {
             "phrases": len(hits),
             "vague": len(vague),

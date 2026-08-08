@@ -66,12 +66,16 @@ $('#decodeBtn').addEventListener('click', async () => {
   if (!text) { toast('先粘贴一段对方说的话'); return; }
   const box = $('#decodeResult');
   box.innerHTML = '<div class="loading">解码中…</div>';
+  const providers = [];
+  if ($('#ctxSleep').checked) providers.push('sleep');
+
   const data = await api('/api/decode', {
     body: {
       text,
       scene: $('#scene').value,
       speaker_id: $('#speaker').value ? Number($('#speaker').value) : null,
       use_llm: $('#decodeLlm').checked,
+      context_providers: providers,
       context: {
         relationship: $('#ctxRelationship').value.trim(),
         setting: $('#ctxSetting').value.trim(),
@@ -103,6 +107,20 @@ function renderDecode(d) {
       <div class="missing-box">
         <p class="missing-title">补上这些背景，解读会更准：</p>
         <ul>${s.missing_context.map((m) => `<li>${esc(m)}</li>`).join('')}</ul>
+      </div>`);
+  }
+
+  // 身体/睡眠状态：仅作用户的自我觉察参考，明确不改对方原意
+  if (s.body_context) {
+    const labels = { body_state: '身体信号', recent_mood: '近期心情', sleep_quality: '睡眠质量' };
+    const items = Object.entries(s.body_context)
+      .map(([k, v]) => `<li><b>${esc(labels[k] || k)}</b>：${esc(v)}</li>`)
+      .join('');
+    parts.push(`
+      <div class="body-box">
+        <p class="body-title">结合你近期的身体状态（仅作你的参考）</p>
+        <ul>${items}</ul>
+        <p class="body-note">${esc(s.body_note || '')}</p>
       </div>`);
   }
 

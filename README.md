@@ -69,6 +69,7 @@
 ContextProvider
     ├─ ManualContextProvider    用户手动填（永远可用）
     ├─ HistoryContextProvider   读本机最近对话，自动补「前因」（默认关）
+    ├─ SleepContextProvider     只读 sleeptracking 库，补身体/睡眠状态（默认关）
     └─ （未来）Calendar / Mail / Wearable …… 任意追加
 ```
 
@@ -76,6 +77,19 @@ ContextProvider
 解码/梳理只认接口、不认具体源。安全约定硬编码：**默认全部关闭、只在本机运行、
 只读取不写入、绝不替用户做任何决定**。接日历 / 邮件 / 可穿戴设备这类外部源时，
 凭证由用户自己提供，数据不离开这台电脑。
+
+#### 与 sleeptracking 的集成（身体状态作为解码参考）
+
+`sleeptracking` 是同机另一个个人项目，已经在记录睡眠、Whoop 的 HRV/恢复分、经期心情——
+这些恰好是「身体当下处于什么状态」的客观信号。asdTranslator 的 **`SleepContextProvider`**
+（默认关）会只读这些数据，在解码结果里作为**你自己的参考维度**呈现：
+
+- 读取顺序：显式设了 `ASDT_SLEEP_DB` → 只用该本地库；否则 Turso 云端库优先（凭据借读
+  sleeptracking 同机 `.env`，不重复存储），失败回退默认本地库。
+- 呈现时严格标注：**这只是你的生理负荷，供自我觉察，不改变对方话语本身的含义**——
+  明确防止「身体累了 → 误读成对方在针对我」这种过度读心（属红线）。
+- 它提供的维度（body_state / recent_mood / sleep_quality）**不参与**充分度判定，
+  不替代关系 / 场合 / 前因。
 
 ### 2. 把话说出去（表达）
 
