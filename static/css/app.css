@@ -209,6 +209,17 @@ main { padding: 22px 24px 60px; max-width: 1560px; margin: 0 auto; }
 .panel { display: none; }
 .panel.active { display: block; }
 
+/* ---------- 身体状态：嵌入同机 sleeptracking ---------- */
+.sleep-embed { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+.sleep-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.sleep-head h2 { font-size: 17px; margin: 0; }
+.sleep-frame-wrap { position: relative; min-height: 76vh; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
+#sleepFrame { width: 100%; height: 76vh; border: 0; display: block; }
+.sleep-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 28px; background: var(--surface); }
+.sleep-fallback[hidden] { display: none; }
+.sleep-fallback-title { font-weight: 600; font-size: 15px; margin: 0; }
+.sleep-fallback code { background: var(--bg-2); padding: 1px 6px; border-radius: 5px; }
+
 .split { display: grid; grid-template-columns: minmax(380px, 5fr) minmax(420px, 7fr); gap: 20px; align-items: start; }
 @media (max-width: 1080px) { .split { grid-template-columns: 1fr; } }
 .col { display: flex; flex-direction: column; gap: 16px; }

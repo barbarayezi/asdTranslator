@@ -53,8 +53,32 @@ $$('.tab').forEach((tab) => {
     $('#panel-' + tab.dataset.tab).classList.add('active');
     if (tab.dataset.tab === 'history') loadHistory();
     if (tab.dataset.tab === 'clarify' && !$('#clarifyBody').innerHTML.trim()) renderClarify();
+    if (tab.dataset.tab === 'sleep') loadSleepApp();
   });
 });
+
+/* ==================== 睡眠/身体状态（嵌入同机 sleeptracking） ==================== */
+let sleepLoaded = false;
+async function loadSleepApp() {
+  const frame = $('#sleepFrame');
+  const fb = $('#sleepFallback');
+  if (!frame || !fb) return;
+  let d = {};
+  try {
+    d = await api('/api/sleep-app');
+  } catch (e) {
+    d = { url: null, reachable: false };
+  }
+  if (d.url && d.reachable) {
+    fb.hidden = true;
+    if (!sleepLoaded) { frame.src = d.url; sleepLoaded = true; }
+  } else {
+    fb.hidden = false;
+    $('#sleepUrlHint').textContent = d.url
+      ? `预期地址：${d.url}（但连不上）`
+      : '没找到 sleeptracking 的 .active_port，确认项目路径是否正确。';
+  }
+}
 
 $$('.chip-sample').forEach((btn) => {
   btn.addEventListener('click', () => { $('#' + btn.dataset.target).value = btn.dataset.text; });

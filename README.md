@@ -91,6 +91,11 @@ ContextProvider
 - 它提供的维度（body_state / recent_mood / sleep_quality）**不参与**充分度判定，
   不替代关系 / 场合 / 前因。
 
+**前端合并**：asdTranslator 顶部新增「身体状态」标签页，用 iframe 直接把同机运行的
+sleeptracking 前端嵌进来——两个 App 各自逻辑不动，切换标签页即可在同一个窗口里看睡眠/HRV/经期，
+不用再开一个浏览器标签。端口由 sleeptracking 自己维护的 `.active_port` 读取，重启后自动跟进；
+若 sleeptracking 没运行，该标签页会显示启动提示而非空白。
+
 ### 2. 把话说出去（表达）
 
 **只标注，不自动改写。** 这是硬性约束，写进了测试。

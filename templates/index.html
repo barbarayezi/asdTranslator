@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>asdTranslator — 双向沟通翻译器</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=4">
 </head>
 <body>
 
@@ -49,6 +49,9 @@
   </button>
   <button class="tab" data-tab="history">
     <strong>记录</strong><small>本机存储</small>
+  </button>
+  <button class="tab" data-tab="sleep">
+    <strong>身体状态</strong><small>sleeptracking</small>
   </button>
 </nav>
 
@@ -177,6 +180,25 @@
   </div>
 </section>
 
+<!-- ============ 身体状态（嵌入同机 sleeptracking） ============ -->
+<section class="panel" id="panel-sleep">
+  <div class="sleep-embed">
+    <div class="sleep-head">
+      <h2>睡眠 / 身体状态</h2>
+      <span class="hint">来自同机 sleeptracking · 只读嵌入，不复制你的数据</span>
+    </div>
+    <div class="sleep-frame-wrap">
+      <iframe id="sleepFrame" title="睡眠追踪" loading="lazy"
+        referrerpolicy="no-referrer" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      <div id="sleepFallback" class="sleep-fallback" hidden>
+        <p class="sleep-fallback-title">sleeptracking 还没启动，或端口没找到。</p>
+        <p>在另一个终端启动它（例如 <code>cd ~/Documents/vscode/developing/sleeptracking &amp;&amp; ./run.sh</code>），然后切回这个标签页刷新即可。</p>
+        <p class="hint" id="sleepUrlHint"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <!-- 设置抽屉 -->
@@ -237,6 +259,6 @@
 <div id="toast" class="toast" hidden></div>
 
 <script>window.__PREFS__ = {{ prefs | tojson }};</script>
-<script src="{{ url_for('static', filename='js/app.js') }}?v=3"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=4"></script>
 </body>
 </html>

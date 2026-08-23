@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+import os
+import urllib.request
 from typing import Any
 
 from flask import Flask, jsonify, render_template, request
@@ -91,6 +93,39 @@ def api_decode():
 def api_context_providers():
     """列出可接入的真实数据源（手动 / 本机记录 / 未来日历·邮件·可穿戴…）。"""
     return jsonify({"providers": context.list_providers()})
+
+
+@app.get("/api/sleep-app")
+def api_sleep_app():
+    """返回同机 sleeptracking 前端的嵌入地址，并探测是否可达。
+
+    两个 App 都是本机 Flask：这里只负责告诉前端 sleeptracking「现在在哪端口」，
+    前端用 iframe 把它嵌进「身体状态」标签页——两边逻辑互不改动。
+    端口读自 sleeptracking 自己维护的 .active_port，重启后也能跟上。
+    """
+    sleep_dir = os.path.dirname(context.SleepContextProvider.DEFAULT_DB)
+    port_file = os.path.join(sleep_dir, ".active_port")
+    url = None
+    try:
+        with open(port_file, encoding="utf-8") as f:
+            port = f.read().strip()
+        if port.isdigit():
+            url = f"http://127.0.0.1:{port}/"
+    except Exception:
+        url = None
+
+    reachable = False
+    if url:
+        try:
+            req = urllib.request.Request(
+                url, method="GET", headers={"User-Agent": "asdTranslator"}
+            )
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
+                reachable = 200 <= resp.status < 400
+        except Exception:
+            reachable = False
+
+    return jsonify({"url": url, "reachable": reachable})
 
 
 # ---------------- ASD → NT 转换 ----------------
