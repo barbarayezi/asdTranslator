@@ -19,7 +19,7 @@ const state = {
   vagueTerms: [],
   compose: null,
   composer: { opener: 'plain', closing: 'plain', buffers: [], slots: {}, reorder: null },
-  clarify: { step: 1, somatic: [], situations: [], emotions: [], need: null, slots: {}, tplIndex: 0, includeEmotion: false, data: null },
+  clarify: { step: 1, somatic: [], situations: [], emotions: [], need: null, slots: {}, tplIndex: 0, includeEmotion: false, data: null, _prefillApplied: false },
 };
 
 async function api(path, opts = {}) {
@@ -455,15 +455,40 @@ async function renderClarify() {
   });
 
   if (c.step === 1) {
-    const d = await api('/api/clarify/entry');
+    const providers = $('#ctxSleep').checked ? 'sleep' : '';
+    const d = await api('/api/clarify/entry' + (providers ? '?providers=' + encodeURIComponent(providers) : ''));
+
+    // 躯体锚点预填：开启睡眠数据源时，把更可能贴切的锚点预勾选（只做一次，不覆盖手动选择）
+    const bh = d.body_hints || {};
+    const prefill = new Set((bh.available && bh.suggested_somatic_ids) || []);
+    if (prefill.size && !c._prefillApplied) {
+      if (!c.somatic.length) c.somatic = [...prefill];
+      c._prefillApplied = true;
+    }
+
+    let bodyBox = '';
+    if (bh.available && prefill.size) {
+      const signals = Object.entries(bh.raw || {})
+        .map(([k, v]) => `<li><b>${esc(k)}</b>：${esc(v)}</li>`).join('');
+      bodyBox = `
+        <div class="body-box">
+          <div class="body-box-title">${esc(bh.explanation || '根据你的身体数据，下面这些感觉可能更贴近你现在的状态')}</div>
+          ${signals ? `<ul class="body-signals">${signals}</ul>` : ''}
+          <p class="body-box-note">${esc(bh.note || '')}</p>
+        </div>`;
+    } else if (bh.available && bh.reason) {
+      bodyBox = `<div class="body-box muted"><p class="body-box-note">${esc(bh.reason)}</p></div>`;
+    }
+
     body.innerHTML = `
       <div class="card">
         <p class="clarify-prompt">${esc(d.prompt)}</p>
+        ${bodyBox}
         <p class="clarify-hint">${esc(d.skip_hint)}</p>
         ${Object.entries(d.somatic_groups).map(([g, items]) => `
           <div class="chip-group"><h4>${esc(g)}</h4>
             <div class="chips">${items.map((i) =>
-              `<button class="chip" data-kind="somatic" data-id="${esc(i.id)}" title="${esc(i.note || '')}">${esc(i.label)}</button>`).join('')}</div>
+              `<button class="chip${prefill.has(i.id) ? ' prefill' : ''}" data-kind="somatic" data-id="${esc(i.id)}" title="${esc(i.note || '')}">${esc(i.label)}</button>`).join('')}</div>
           </div>`).join('')}
         <div class="chip-group"><h4>${esc(d.situation_prompt)}</h4>
           <div class="chips">${d.situations.map((s) =>
@@ -595,7 +620,7 @@ async function renderClarify() {
     if (inc) inc.addEventListener('change', () => { c.includeEmotion = inc.checked; renderClarify(); });
     $('#clarifyBack').addEventListener('click', () => { c.step = 3; renderClarify(); });
     $('#clarifyRestart').addEventListener('click', () => {
-      state.clarify = { step: 1, somatic: [], situations: [], emotions: [], need: null, slots: {}, tplIndex: 0, includeEmotion: false, data: null };
+      state.clarify = { step: 1, somatic: [], situations: [], emotions: [], need: null, slots: {}, tplIndex: 0, includeEmotion: false, data: null, _prefillApplied: false };
       renderClarify();
     });
   }

@@ -14,8 +14,12 @@ from typing import Any
 from engine.base import load
 
 
-def entry_options() -> dict[str, Any]:
-    """第一步的选项。注意：不问「你感觉如何」。"""
+def entry_options(context_providers: list[str] | None = None) -> dict[str, Any]:
+    """第一步的选项。注意：不问「你感觉如何」。
+
+    context_providers 里含 "sleep" 时，会根据近几天的睡眠/HRV/心情，
+    预先勾选更可能贴切的躯体锚点（只读用户自己的身体数据，只推荐、可取消）。
+    """
     kb = load("clarify")
     groups: dict[str, list[dict[str, Any]]] = {}
     for item in kb["somatic"]:
@@ -28,7 +32,86 @@ def entry_options() -> dict[str, Any]:
         "situations": kb["situations"],
         "situation_prompt": "再看看刚才发生了什么（多选，可跳过）：",
         "skip_hint": "如果你现在说不上来，直接点「跳过，我先说事情」也完全可以。",
+        "body_hints": body_hints(context_providers),
     }
+
+
+def body_hints(context_providers: list[str] | None) -> dict[str, Any]:
+    """根据开启的数据源，返回躯体锚点的预填建议。
+
+    只服务于「用户自己的躯体觉察」——读的是用户本机睡眠/身体数据，
+    不是读对方。因此与 decode 的「不得用身体数据更准地读对方」红线不冲突：
+    这里是帮用户定位「我自己现在是什么状态」，是自我觉察，不是读心。
+
+    失败一律 fail-safe：返回 available=False，不影响主流程。
+    """
+    if not context_providers or "sleep" not in context_providers:
+        return {"available": False}
+
+    try:
+        from engine import context as ctx_mod
+
+        provider = next((p for p in ctx_mod.REGISTRY if p.id == "sleep"), None)
+        if provider is None:
+            return {"available": False}
+        signals = provider.gather()
+    except Exception:
+        return {"available": False}
+
+    if not signals:
+        return {"available": False, "reason": "暂无可用的睡眠 / 身体数据"}
+
+    suggested = _map_signals_to_somatic(signals)
+    return {
+        "available": True,
+        "raw": signals,
+        "suggested_somatic_ids": suggested,
+        "explanation": (
+            "根据你近几天的睡眠 / HRV / 心情，下面这些身体感觉可能更贴近你现在的真实状态。"
+            "已经帮你预勾选，不贴切就取消——这读的是你的身体，不是对方。"
+        ),
+        "note": "这些是你的身体数据，用来帮你定位自己的状态，不是用来猜对方在想什么。",
+    }
+
+
+def _map_signals_to_somatic(signals: dict[str, str]) -> list[str]:
+    """把睡眠/HRV/心情信号映射到躯体锚点 id。顺序：身体 > 睡眠 > 心情。"""
+    import re
+
+    body = signals.get("body_state", "")
+    sleep = signals.get("sleep_quality", "")
+    mood = signals.get("recent_mood", "")
+
+    ids: list[str] = []
+    seen: set[str] = set()
+
+    def add(*xs: str) -> None:
+        for x in xs:
+            if x not in seen:
+                seen.add(x)
+                ids.append(x)
+
+    # 1) 身体 / HRV 状态
+    if "恢复不足" in body:
+        add("exhausted", "want_silence", "shoulder_stiff", "heart_race")
+    if "生理负荷偏高" in body:
+        add("exhausted", "want_silence", "restless", "cant_focus")
+
+    # 2) 睡眠质量（注意「0 晚差」含「差」字但实为 0，必须按数量判定）
+    poor = re.search(r"(\d+)\s*晚差", sleep)
+    poor_nights = int(poor.group(1)) if poor else 0
+    if poor_nights > 0 or "poor" in sleep.lower():
+        add("exhausted", "head_pressure", "cant_focus", "numb")
+
+    # 3) 近期心情
+    if "低落" in mood:
+        add("want_silence", "exhausted", "numb")
+    if "烦躁" in mood or "焦虑" in mood:
+        add("restless", "cant_focus", "heart_race")
+    if "疲惫" in mood or "累" in mood:
+        add("exhausted")
+
+    return ids
 
 
 def suggest_emotions(somatic_ids: list[str], situation_ids: list[str]) -> dict[str, Any]:

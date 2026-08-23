@@ -123,10 +123,11 @@
   border-radius: 10px;
   background: #f3f7fb;
 }
-.body-title { font-weight: 600; font-size: 13px; margin: 0 0 6px; color: #3a5a78; }
-.body-box ul { margin: 0 0 8px; padding-left: 18px; }
-.body-box li { font-size: 13px; color: var(--text); margin: 3px 0; }
-.body-note { font-size: 12px; color: #5a6b7a; margin: 4px 0 0; line-height: 1.5; }
+.body-box.muted { background: #f7f8f9; border-color: #e2e6ea; }
+.body-box-title { font-weight: 600; font-size: 13px; margin: 0 0 6px; color: #3a5a78; }
+.body-signals { margin: 0 0 8px; padding-left: 18px; list-style: disc; }
+.body-signals li { font-size: 13px; color: var(--text); margin: 3px 0; }
+.body-box-note { font-size: 12px; color: #5a6b7a; margin: 4px 0 0; line-height: 1.5; }
 
 body {
   margin: 0;
@@ -482,6 +483,8 @@ textarea::placeholder { color: var(--text-3); }
 }
 .chip:hover { border-color: var(--accent-border); }
 .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.chip.prefill { border-style: dashed; border-color: #9fb4c6; }
+.chip.prefill.on { background: var(--accent-soft); border-style: solid; border-color: var(--accent); color: var(--accent); }
 .chip.weighted { border-color: var(--accent-border); }
 
 .step-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }

@@ -248,6 +248,135 @@ def test_clarify_all_outputs_clean():
             assert not r["blocked"], f"话术模板触碰红线：{tpl} → {r['violations']}"
 
 
+# ---------- 躯体锚点预填：开启睡眠数据源时，把更可能贴切的锚点预勾选 ----------
+
+def _make_sleep_db(low_hrv=True, poor_sleep=True, mood="低落"):
+    """造一个临时 sleeptracking 库，便于测试 SleepContextProvider / 躯体锚点映射。"""
+    import os
+    import sqlite3
+    import tempfile
+
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE sleep_records (record_date TEXT, sleep_quality TEXT, "
+                "sleep_problems TEXT, dream_journal TEXT)")
+    con.execute("CREATE TABLE whoop_daily_metrics (record_date TEXT, hrv REAL, recovery_score REAL)")
+    con.execute("CREATE TABLE period_records (record_date TEXT, mood TEXT)")
+    for i in range(10):
+        day = i + 1
+        hrv = 40 if (low_hrv and i >= 7) else 70
+        con.execute("INSERT INTO whoop_daily_metrics VALUES (?,?,?)",
+                    (f"2026-08-{day:02d}", hrv, hrv))
+    if poor_sleep:
+        con.execute("INSERT INTO sleep_records VALUES ('2026-08-03','poor','[\"insomnia\"]','')")
+    if mood:
+        con.execute("INSERT INTO period_records VALUES ('2026-08-03', ?)", (mood,))
+    con.commit()
+    con.close()
+    return path
+
+
+def test_clarify_entry_body_hints_off_without_provider():
+    """不传 sleep provider 时，body_hints 不可用，主流程不受影响。"""
+    d = clarify.entry_options()
+    assert d["body_hints"]["available"] is False
+
+
+def test_clarify_entry_body_hints_suggests_somatic():
+    """传 sleep provider + 真实身体信号 → 返回可用预填，且映射到合理的躯体锚点。"""
+    import os
+
+    db = _make_sleep_db(low_hrv=True, poor_sleep=True, mood="低落")
+    old = os.environ.get("ASDT_SLEEP_DB")
+    os.environ["ASDT_SLEEP_DB"] = db
+    try:
+        d = clarify.entry_options(context_providers=["sleep"])
+        bh = d["body_hints"]
+        assert bh["available"] is True
+        assert bh["raw"].get("body_state") and "恢复不足" in bh["raw"]["body_state"]
+        ids = bh["suggested_somatic_ids"]
+        # 恢复不足 + 睡眠差 + 低落 → 这些锚点至少应被推荐
+        for must in ("exhausted", "want_silence", "numb"):
+            assert must in ids, f"预期锚点 {must} 未被推荐：{ids}"
+        assert bh["note"]  # 必须说明「读的是你的身体，不是对方」
+    finally:
+        if old is None:
+            os.environ.pop("ASDT_SLEEP_DB", None)
+        else:
+            os.environ["ASDT_SLEEP_DB"] = old
+        os.remove(db)
+
+
+def test_clarify_body_hints_safe_when_no_signal():
+    """sleep provider 开启但信号平淡（HRV 持平、睡眠不差、心情平静）→ 不强推锚点。"""
+    import os
+
+    db = _make_sleep_db(low_hrv=False, poor_sleep=False, mood="平静")
+    old = os.environ.get("ASDT_SLEEP_DB")
+    os.environ["ASDT_SLEEP_DB"] = db
+    try:
+        d = clarify.entry_options(context_providers=["sleep"])
+        bh = d["body_hints"]
+        # 平淡信号下不应把耗竭/过载类锚点强加给用户
+        assert "exhausted" not in bh["suggested_somatic_ids"]
+        assert "restless" not in bh["suggested_somatic_ids"]
+    finally:
+        if old is None:
+            os.environ.pop("ASDT_SLEEP_DB", None)
+        else:
+            os.environ["ASDT_SLEEP_DB"] = old
+        os.remove(db)
+
+
+def test_clarify_body_hints_safe_when_empty_db():
+    """sleep provider 开启但库为空 → fail-safe 返回不可用，不抛异常。"""
+    import os
+    import sqlite3
+    import tempfile
+
+    fd, db = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE sleep_records (record_date TEXT, sleep_quality TEXT, "
+                "sleep_problems TEXT, dream_journal TEXT)")
+    con.execute("CREATE TABLE whoop_daily_metrics (record_date TEXT, hrv REAL, recovery_score REAL)")
+    con.execute("CREATE TABLE period_records (record_date TEXT, mood TEXT)")
+    con.commit()
+    con.close()
+
+    old = os.environ.get("ASDT_SLEEP_DB")
+    os.environ["ASDT_SLEEP_DB"] = db
+    try:
+        d = clarify.entry_options(context_providers=["sleep"])
+        assert d["body_hints"]["available"] is False
+    finally:
+        if old is None:
+            os.environ.pop("ASDT_SLEEP_DB", None)
+        else:
+            os.environ["ASDT_SLEEP_DB"] = old
+        os.remove(db)
+
+
+def test_clarify_map_signals_covers_mood_variants():
+    """心情映射分支独立验证：烦躁/焦虑 → 不安类锚点；平静 → 不强推。"""
+    assert "restless" in clarify._map_signals_to_somatic({"recent_mood": "近期心情：烦躁"})
+    assert "heart_race" in clarify._map_signals_to_somatic({"recent_mood": "近期心情：焦虑"})
+    # 平静类不该强推耗竭锚点（允许为空列表）
+    calm = clarify._map_signals_to_somatic({"recent_mood": "近期心情：平静"})
+    assert "exhausted" not in calm
+
+
+def test_clarify_map_signals_zero_poor_nights_not_false_positive():
+    """回归：「近 7 晚：0 晚差」含「差」字但实为 0，不得误触发睡眠差分支。"""
+    flat = clarify._map_signals_to_somatic({
+        "body_state": "HRV 近 3 天 47ms、恢复分 77，与基线持平",
+        "sleep_quality": "近 7 晚：0 晚差，最新 good / good / good",
+        "recent_mood": "近期心情：good、average、average",
+    })
+    assert flat == [], f"平淡信号不应强推锚点，实际：{flat}"
+
+
 # ---------- 充分度信号（信息不够就不假装读懂）----------
 
 def test_decode_thin_when_too_short():

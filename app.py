@@ -133,7 +133,8 @@ def api_compose_apply():
 
 @app.get("/api/clarify/entry")
 def api_clarify_entry():
-    return jsonify(clarify.entry_options())
+    providers = [p.strip() for p in (request.args.get("providers") or "").split(",") if p.strip()]
+    return jsonify(clarify.entry_options(context_providers=providers or None))
 
 
 @app.post("/api/clarify/emotions")
